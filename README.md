@@ -1,4 +1,5 @@
 # 🚀 RoCEv2 Configuration & Tuning Guide — Cisco Nexus 9300
+https://www.cisco.com/c/en/us/td/docs/dcn/whitepapers/roce-storage-implementation-over-nxos-vxlan-fabrics.html
 
 ## 📖 Overview
 
