@@ -22,21 +22,39 @@ ecn enable
 ## 🎯 QoS Classification
 
 ```bash
-class-map match-any ROCE-TRAFFIC
-  match cos 3
+class-map type qos match-any CNP
+  match dscp 48
+
+class-map type qos match-any ROCEv2
+  match dscp 24
 ```
 
-> Use `cos 3` or an appropriate DSCP/ACL match to identify RDMA traffic.
+> DSCP 48 is used for Congestion Notification Packets (CNP).
+> DSCP 24 is used for RDMA payload traffic.
 
 ---
 
 ## 📦 QoS Policy (Marking)
 
 ```bash
-policy-map type qos ROCE-QOS
-  class ROCE-TRAFFIC
+policy-map type qos QOS_MARKING
+  class ROCEv2
     set qos-group 3
+  class CNP
+    set qos-group 7
+  class class-default
+    set qos-group 0
 ```
+
+---
+
+## 🔁 CoS to DSCP Mapping
+
+```bash
+mls qos map cos-dscp 3 24
+```
+
+> Maps CoS 3 to DSCP 24. Adjust the value to 48 as needed based on your upstream or application marking policy.
 
 ---
 
@@ -62,7 +80,7 @@ policy-map type queuing ROCE-QUEUE
 interface Ethernet1/1
   priority-flow-control receive on
   priority-flow-control send on
-  service-policy type qos input ROCE-QOS
+  service-policy type qos input QOS_MARKING
   service-policy type queuing output ROCE-QUEUE
 ```
 
@@ -99,7 +117,7 @@ show policy-map interface Ethernet1/1
 
 ## 🧐 Best Practices
 
-- Use **only one CoS** (e.g., `cos 3`) for RoCEv2 traffic to avoid PFC cross-interference.
+- Use **only one CoS** (e.g., `cos 3`) and/or **consistent DSCP values** for RoCEv2 traffic to avoid PFC cross-interference.
 - Apply **ECN** to reduce dependency on PFC and mitigate head-of-line blocking.
 - Use **telemetry (NX-API or gRPC)** to monitor buffers, drops, and ECN stats.
 - Start with the **Balanced Profile**, then tune based on performance metrics.
@@ -121,4 +139,3 @@ Tested with NX-OS release: `9.x(3)` and later
 Platform: Cisco Nexus 9300 series (e.g., C9336C-FX2, C93180YC-EX)
 
 ---
-
