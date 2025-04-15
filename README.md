@@ -27,11 +27,11 @@ class-map type qos match-any CNP
   match dscp 48
 
 class-map type qos match-any ROCEv2
-  match dscp 24
+  match dscp 26
 ```
 
 > DSCP 48 is used for Congestion Notification Packets (CNP).
-> DSCP 24 is used for RDMA payload traffic.
+> DSCP 26 is used for RDMA payload traffic.
 
 ---
 
@@ -52,10 +52,10 @@ policy-map type qos QOS_MARKING
 ## 🔁 CoS to DSCP Mapping
 
 ```bash
-mls qos map cos-dscp 3 24
+mls qos map cos-dscp 3 26
 ```
 
-> Maps CoS 3 to DSCP 24. Adjust the value to 48 as needed based on your upstream or application marking policy.
+> Maps CoS 3 to DSCP 26. Adjust the value to 48 as needed based on your upstream or application marking policy.
 
 ---
 
@@ -63,12 +63,25 @@ mls qos map cos-dscp 3 24
 
 ```bash
 policy-map type queuing ROCE-QUEUE
-  class type qos group 3
-    bandwidth percent 50
-    queue-limit 10000000 bytes
-    random-detect ecn
-    random-detect min-threshold 3000000 bytes
-    random-detect max-threshold 6000000 bytes
+   class type queuing c-out-8q-q3
+ # ROCEv2
+    bandwidth remaining percent 50
+    random-detect minimum-threshold 100 kbytes maximum-threshold 700 kbytes drop-probability 40 weight 0 ecn
+class type queuing c-out-8q-q7
+#q7 for CNP packet
+    priority level 1 
+
+policy-map type network-qos qos_network
+  class type network-qos c-8q-nq3
+ #enable pause frame
+    pause pfc-cos 3
+    mtu 4200
+
+system qos
+  service-policy type network-qos qos_network
+  service-policy type queuing output ROCE-QUEUE
+
+
 ```
 
 > Tune `queue-limit`, `min-threshold`, and `max-threshold` based on your workload.
